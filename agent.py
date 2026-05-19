@@ -37,7 +37,7 @@ def _get_client():
     return _client
 
 # Modelo a usar — testamos e este funciona no plano gratuito
-MODELO = "gemini-flash-lite-latest"
+MODELO = "gemini-2.5-flash"
 
 # ── PERSONA DO AGENTE ─────────────────────────────────────────────────────────
 # Mude este texto para dar qualquer personalidade ao seu agente!
