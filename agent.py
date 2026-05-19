@@ -21,15 +21,20 @@ _pasta = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(_pasta, ".env"))
 
 # ── CONFIGURAÇÃO ──────────────────────────────────────────────────────────────
-# Tenta ler a chave: primeiro do Streamlit Cloud secrets, depois do .env local
-def _get_api_key():
-    try:
-        import streamlit as st
-        return st.secrets["GEMINI_API_KEY"]
-    except Exception:
-        return os.getenv("GEMINI_API_KEY")
+# Cliente criado na primeira chamada (lazy) para garantir que os secrets
+# do Streamlit Cloud já estejam carregados quando for lido
+_client = None
 
-client = genai.Client(api_key=_get_api_key())
+def _get_client():
+    global _client
+    if _client is None:
+        try:
+            import streamlit as st
+            key = st.secrets["GEMINI_API_KEY"]
+        except Exception:
+            key = os.getenv("GEMINI_API_KEY")
+        _client = genai.Client(api_key=key)
+    return _client
 
 # Modelo a usar — testamos e este funciona no plano gratuito
 MODELO = "gemini-flash-lite-latest"
@@ -76,7 +81,7 @@ def perguntar_ao_agente(mensagem: str, historico: list) -> str:
         )
 
     # Passo 2: Cria o chat com histórico e persona
-    chat = client.chats.create(
+    chat = _get_client().chats.create(
         model=MODELO,
         history=gemini_history,
         config=types.GenerateContentConfig(
