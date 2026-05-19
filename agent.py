@@ -16,14 +16,20 @@ from dotenv import load_dotenv
 from google import genai               # biblioteca oficial do Google Gemini
 from google.genai import types         # tipos de dados da API
 
-# ── CARREGA O .env ────────────────────────────────────────────────────────────
-# Carrega aqui mesmo, garantindo que a chave esteja disponível antes de tudo
+# ── CARREGA O .env (só funciona localmente) ───────────────────────────────────
 _pasta = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(_pasta, ".env"))
 
 # ── CONFIGURAÇÃO ──────────────────────────────────────────────────────────────
-# Cria o cliente com a chave lida do arquivo .env
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+# Tenta ler a chave: primeiro do Streamlit Cloud secrets, depois do .env local
+def _get_api_key():
+    try:
+        import streamlit as st
+        return st.secrets["GEMINI_API_KEY"]
+    except Exception:
+        return os.getenv("GEMINI_API_KEY")
+
+client = genai.Client(api_key=_get_api_key())
 
 # Modelo a usar — testamos e este funciona no plano gratuito
 MODELO = "gemini-flash-lite-latest"
