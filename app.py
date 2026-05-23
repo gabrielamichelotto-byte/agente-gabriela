@@ -128,7 +128,9 @@ div.stButton > button {
     color: #c9819a;
     background: #f5f0eb;
     border-radius: 20px;
-    padding: 0.25rem 1.2rem;
+    padding: 0.25rem 1.6rem;
+    white-space: nowrap;
+    min-width: 90px;
 }
 div.stButton > button:hover {
     background: #ede8e2;
@@ -192,4 +194,4 @@ if st.session_state.historico:
             st.session_state.historico = []
             st.rerun()
 
-st.markdown('<p class="footer">Python · Streamlit · Google Gemini</p>', unsafe_allow_html=True)
+st.markdown('<p class="footer">Python · Streamlit · Claude AI</p>', unsafe_allow_html=True)
