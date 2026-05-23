@@ -1,20 +1,17 @@
 """
 agent.py — O "cérebro" do nosso agente IA
 ==========================================
-Usando Google Gemini (gratuito, sem cartão de crédito!)
+Usando Anthropic Claude API
 """
 
 # ── FIX SSL (necessário no Windows com alguns antivírus/proxies) ──────────────
-# O Windows às vezes tem conflito de certificados SSL com Python.
-# Esta linha diz ao Python para usar as configurações de segurança do próprio Windows.
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
 # ── IMPORTS ───────────────────────────────────────────────────────────────────
 import os
 from dotenv import load_dotenv
-from google import genai               # biblioteca oficial do Google Gemini
-from google.genai import types         # tipos de dados da API
+import anthropic
 
 # ── CARREGA O .env (só funciona localmente) ───────────────────────────────────
 _pasta = os.path.dirname(os.path.abspath(__file__))
@@ -30,17 +27,16 @@ def _get_client():
     if _client is None:
         try:
             import streamlit as st
-            key = st.secrets["GEMINI_API_KEY"]
+            key = st.secrets["ANTHROPIC_API_KEY"]
         except Exception:
-            key = os.getenv("GEMINI_API_KEY")
-        _client = genai.Client(api_key=key)
+            key = os.getenv("ANTHROPIC_API_KEY")
+        _client = anthropic.Anthropic(api_key=key)
     return _client
 
-# Modelo a usar — testamos e este funciona no plano gratuito
-MODELO = "gemini-2.5-flash"
+# Modelo a usar
+MODELO = "claude-haiku-4-5"
 
 # ── PERSONA DO AGENTE ─────────────────────────────────────────────────────────
-# Mude este texto para dar qualquer personalidade ao seu agente!
 SYSTEM_PROMPT = """
 Você é o assistente pessoal de Inteligência Artificial da Gabriela Michelotto.
 Responda sempre em português do Brasil, de forma clara, direta e amigável.
@@ -59,39 +55,31 @@ Nunca invente informações. Trate a Gabriela pelo primeiro nome quando fizer se
 
 def perguntar_ao_agente(mensagem: str, historico: list) -> str:
     """
-    Envia uma mensagem para o Gemini e retorna a resposta.
+    Envia uma mensagem para o Claude e retorna a resposta.
 
     Parâmetros:
         mensagem  — o texto que o usuário digitou agora
         historico — lista com todas as mensagens anteriores da conversa
     """
 
-    # Passo 1: Converte o histórico para o formato que a API do Gemini aceita
-    # Nosso formato:  {"role": "user"/"assistant", "content": "texto"}
-    # Formato Gemini: types.Content(role="user"/"model", parts=[types.Part(text="texto")])
-    gemini_history = []
-
+    # Passo 1: Converte o histórico para o formato da API Anthropic
+    messages = []
     for msg in historico:
-        role = "model" if msg["role"] == "assistant" else "user"
-        gemini_history.append(
-            types.Content(
-                role=role,
-                parts=[types.Part(text=msg["content"])]
-            )
-        )
+        role = "user" if msg["role"] == "user" else "assistant"
+        messages.append({"role": role, "content": msg["content"]})
 
-    # Passo 2: Cria o chat com histórico e persona
-    chat = _get_client().chats.create(
+    # Passo 2: Adiciona a mensagem atual
+    messages.append({"role": "user", "content": mensagem})
+
+    # Passo 3: Chama a API e pega a resposta
+    response = _get_client().messages.create(
         model=MODELO,
-        history=gemini_history,
-        config=types.GenerateContentConfig(
-            system_instruction=SYSTEM_PROMPT
-        )
+        max_tokens=1024,
+        system=SYSTEM_PROMPT,
+        messages=messages
     )
 
-    # Passo 3: Envia a mensagem e pega a resposta
-    resposta = chat.send_message(mensagem)
-    texto_resposta = resposta.text
+    texto_resposta = response.content[0].text
 
     # Passo 4: Salva no histórico (formato padrão)
     historico.append({"role": "user",      "content": mensagem})
